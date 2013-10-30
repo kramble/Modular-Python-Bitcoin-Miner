@@ -151,7 +151,7 @@ class Job(object):
   @staticmethod
   def calculate_midstate(data):
     # return struct.pack("<8I", *struct.unpack(">8I", SHA256.hash(struct.pack("<16I", *struct.unpack(">16I", data[:64])), False)))
-    return struct.pack("<8I", *struct.unpack(">8I", BLAKE(256).midstate(struct.pack("<16I", *struct.unpack(">16I", data[:64])), False)))
+    return struct.pack("<8I", *struct.unpack(">8I", BLAKE(256).midstate(struct.pack("<16I", *struct.unpack(">16I", data[:64])))))
       
   @staticmethod
   def calculate_hash(data):
