@@ -50,8 +50,12 @@ class Job(object):
     self.prevhash = data[4:36]
     self.difficulty = 65535. * 2**48 / struct.unpack("<Q", self.target[-12:-4])[0]
     with self.worksource.stats.lock: self.worksource.stats.difficulty = self.difficulty
-    if midstate: self.midstate = midstate
-    else: self.midstate = Job.calculate_midstate(data)
+    # blakecoin always calculate midstate
+    # if midstate: self.midstate = midstate
+    # else: self.midstate = Job.calculate_midstate(data)
+    # self.core.log(worksource, "Data %s\n" % (hexlify(data).decode("ascii")), 400)
+    self.midstate = Job.calculate_midstate(data)
+    # self.core.log(worksource, "Midstate %s\n" % (hexlify(self.midstate).decode("ascii")), 400)
     self.canceled = False
     self.destroyed = False
     self.worker = None
@@ -101,7 +105,9 @@ class Job(object):
     nonceval = struct.unpack("<I", nonce)[0]
     self.core.event(400, self.worker, "noncefound", nonceval, None, self.worker, self.worksource, self.blockchain, self)
     data = self.data[:76] + nonce + self.data[80:]
+    # self.core.log(self.worker, "HashData %s\n" % (hexlify(data).decode("ascii")), 200, "yB")
     hash = Job.calculate_hash(data)
+    # self.core.log(self.worker, "Hash %s\n" % (hexlify(hash).decode("ascii")), 200, "yB")
     if hash[-4:] != b"\0\0\0\0":
       if ignore_invalid: return False
       self.core.log(self.worker, "Got H-not-zero share %s\n" % (hexlify(nonce).decode("ascii")), 200, "yB")
@@ -156,7 +162,7 @@ class Job(object):
   @staticmethod
   def calculate_hash(data):
     # return sha256(sha256(struct.pack("<20I", *struct.unpack(">20I", data[:80]))).digest()).digest()
-    return BLAKE(256).digest(struct.pack("<20I", *struct.unpack(">20I", data[:80]))).digest()
+    return BLAKE(256).digest(struct.pack("<20I", *struct.unpack(">20I", data[:80])))
 
     
     
@@ -166,8 +172,10 @@ class ValidationJob(object):
   def __init__(self, core, data, midstate = None):
     self.core = core
     self.data = data
-    if midstate: self.midstate = midstate
-    else: self.midstate = Job.calculate_midstate(data)
+    # blakecoin always calculate midstate
+    # if midstate: self.midstate = midstate
+    # else: self.midstate = Job.calculate_midstate(data)
+    self.midstate = Job.calculate_midstate(data)
     self.nonce = self.data[76:80]
     self.worker = None
     self.starttime = None

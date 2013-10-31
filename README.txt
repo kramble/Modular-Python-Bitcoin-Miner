@@ -18,6 +18,9 @@ Copyright (C) 2012 Michael Sparmann (TheSeven)
 Please consider donating to 1PLAPWDejJPJnY2ppYCgtw5ko8G5Q4hPzh if you
 want to support further development of the Modular Python Bitcoin Miner.
 
+KRAMBLE WARNING
+===============
+This is a quick, nasty hack to support blakecoin, do not use for bitcoin as it will not work
 
 System Requirements
 ===================
