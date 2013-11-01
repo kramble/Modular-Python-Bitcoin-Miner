@@ -162,7 +162,8 @@ class IcarusWorker(BaseWorker):
         self.hasheswithoutshare = 0
 
         # Initialize megahashes per second to zero, will be measured later.
-        self.stats.mhps = 0
+        # Gives divide by zeror error in blakecoin, so set it to a valid number
+        self.stats.mhps = 800
 
         # Job that the device is currently working on, or that is currently being uploaded.
         # This variable is used by BaseWorker to figure out the current work source for statistics.
@@ -176,8 +177,8 @@ class IcarusWorker(BaseWorker):
 
         # We keep control of the wakeup lock at all times unless we're sleeping
         self.wakeup.acquire()
-        # Set validation success flag to false
-        self.checksuccess = False
+        # Set validation success flag to false - for blakecoin set TRUE since not validating
+        self.checksuccess = True
         # Start device response listener thread
         self.listenerthread = Thread(None, self._listener, self.settings.name + "_listener")
         self.listenerthread.daemon = True
@@ -195,13 +196,16 @@ class IcarusWorker(BaseWorker):
         # down to about 2.6MH/s, for slower devices this timeout will need to be increased.
         self.wakeup.wait(60)
         # If an exception occurred in the listener thread, rethrow it
-        if self.error != None: raise self.error
+        # DISABLE for blakecoin
+        # if self.error != None: raise self.error
+        self.checksuccess = True
         # Honor shutdown flag
         if self.shutdown: break
         # We woke up, but the validation job hasn't succeeded in the mean time.
         # This usually means that the wakeup timeout has expired.
         if not self.checksuccess: raise Exception("Timeout waiting for validation job to finish")
         # self.stats.mhps has now been populated by the listener thread
+        self.stats.mhps=800.0
         self.core.log(self, "Running at %f MH/s\n" % self.stats.mhps, 300, "B")
         # Calculate the time that the device will need to process 2**32 nonces.
         # This is limited at 60 seconds in order to have some regular communication,
@@ -294,8 +298,8 @@ class IcarusWorker(BaseWorker):
         # If there were suspiciously many hashes without even a single share,
         # assume that PL2303 did it's job (i.e. serial port locked up),
         # and restart the board worker.
-        if self.hasheswithoutshare > 16 * 2**32:
-          raise Exception("Watchdog triggered: %.6f MHashes without share" % (self.hasheswithoutshare / 1000000.))
+        # if self.hasheswithoutshare > 16 * 2**32:
+        #  raise Exception("Watchdog triggered: %.6f MHashes without share" % (self.hasheswithoutshare / 1000000.))
 
         # Try to read a response from the device
         nonce = self.handle.read(4)
@@ -331,7 +335,9 @@ class IcarusWorker(BaseWorker):
         # This needs self.stats.mhps to be set.
         if isinstance(newjob, ValidationJob):
           # This is a validation job. Validate that the nonce is correct, and complain if not.
-          if newjob.nonce != nonce:
+          # DISABLE for blakecoin
+          #if newjob.nonce != nonce:
+          if 0:
             raise Exception("Mining device is not working correctly (returned %s instead of %s)" % (hexlify(nonce).decode("ascii"), hexlify(newjob.nonce).decode("ascii")))
           else:
             # The nonce was correct. Wake up the main thread.
@@ -361,7 +367,15 @@ class IcarusWorker(BaseWorker):
     self.job = job
     # Send it to the device
     now = time.time()
-    self.handle.write(job.midstate[::-1] + b"\0" * 20 + job.data[75:63:-1])
+    # ORIGINAL
+    # self.handle.write(job.midstate[::-1] + b"\0" * 20 + job.data[75:63:-1])
+
+    # HACK for kramble no target but still needs nonce
+    # self.handle.write(job.data[79:63:-1] + job.midstate[::-1])
+
+    # HACK for kramble standard target build (send 0x00000000 for target)
+    self.handle.write(b"\0" * 4 + job.data[79:63:-1] + job.midstate[::-1])
+
     self.handle.flush()
     self.job.starttime = time.time()
     # Calculate how long the old job was running
