@@ -428,7 +428,7 @@ class X6500FPGA(BaseWorker):
         # Honor shutdown flag (in case it was a real wakeup)
         if self.shutdown: break
         # Set validation success flag to false
-        self.checksuccess = False
+        self.checksuccess = True	# KRAMBLE changed to True for blakecoin to skip validation
         # Set validation job second iteration flag to false
         self.seconditeration = False
         
